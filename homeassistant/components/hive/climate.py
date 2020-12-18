@@ -1,6 +1,9 @@
 """Support for the Hive climate devices."""
-from homeassistant.components.climate import ClimateDevice
+from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
+    CURRENT_HVAC_HEAT,
+    CURRENT_HVAC_IDLE,
+    CURRENT_HVAC_OFF,
     HVAC_MODE_AUTO,
     HVAC_MODE_HEAT,
     HVAC_MODE_OFF,
@@ -11,8 +14,7 @@ from homeassistant.components.climate.const import (
 )
 from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS
 
-
-from . import DOMAIN, DATA_HIVE, HiveEntity, refresh_system
+from . import DATA_HIVE, DOMAIN, HiveEntity, refresh_system
 
 HIVE_TO_HASS_STATE = {
     "SCHEDULE": HVAC_MODE_AUTO,
@@ -24,6 +26,12 @@ HASS_TO_HIVE_STATE = {
     HVAC_MODE_AUTO: "SCHEDULE",
     HVAC_MODE_HEAT: "MANUAL",
     HVAC_MODE_OFF: "OFF",
+}
+
+HIVE_TO_HASS_HVAC_ACTION = {
+    "UNKNOWN": CURRENT_HVAC_OFF,
+    False: CURRENT_HVAC_IDLE,
+    True: CURRENT_HVAC_HEAT,
 }
 
 SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
@@ -43,7 +51,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     add_entities(devs)
 
 
-class HiveClimateEntity(HiveEntity, ClimateDevice):
+class HiveClimateEntity(HiveEntity, ClimateEntity):
     """Hive Climate Device."""
 
     def __init__(self, hive_session, hive_device):
@@ -71,7 +79,11 @@ class HiveClimateEntity(HiveEntity, ClimateDevice):
         """Return the name of the Climate device."""
         friendly_name = "Heating"
         if self.node_name is not None:
-            friendly_name = f"{self.node_name} {friendly_name}"
+            if self.device_type == "TRV":
+                friendly_name = self.node_name
+            else:
+                friendly_name = f"{self.node_name} {friendly_name}"
+
         return friendly_name
 
     @property
@@ -94,6 +106,13 @@ class HiveClimateEntity(HiveEntity, ClimateDevice):
         Need to be one of HVAC_MODE_*.
         """
         return HIVE_TO_HASS_STATE[self.session.heating.get_mode(self.node_id)]
+
+    @property
+    def hvac_action(self):
+        """Return current HVAC action."""
+        return HIVE_TO_HASS_HVAC_ACTION[
+            self.session.heating.operational_status(self.node_id, self.device_type)
+        ]
 
     @property
     def temperature_unit(self):
@@ -123,7 +142,10 @@ class HiveClimateEntity(HiveEntity, ClimateDevice):
     @property
     def preset_mode(self):
         """Return the current preset mode, e.g., home, away, temp."""
-        if self.session.heating.get_boost(self.node_id) == "ON":
+        if (
+            self.device_type == "Heating"
+            and self.session.heating.get_boost(self.node_id) == "ON"
+        ):
             return PRESET_BOOST
         return None
 

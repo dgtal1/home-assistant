@@ -5,7 +5,7 @@ import voluptuous as vol
 
 from homeassistant.const import CONF_DEVICE_ID, CONF_DOMAIN, CONF_TYPE
 from homeassistant.core import Context, HomeAssistant
-from homeassistant.helpers import config_validation as cv, service
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType, TemplateVarsType
 
 from . import DOMAIN
@@ -49,7 +49,6 @@ async def async_call_action_from_config(
     context: Context,
 ) -> None:
     """Perform an action based on configuration."""
-    config = ACTION_SCHEMA(config)
     await ZHA_ACTION_TYPES[DEVICE_ACTION_TYPES[config[CONF_TYPE]]](
         hass, config, variables, context
     )
@@ -57,12 +56,20 @@ async def async_call_action_from_config(
 
 async def async_get_actions(hass: HomeAssistant, device_id: str) -> List[dict]:
     """List device actions."""
-    zha_device = await async_get_zha_device(hass, device_id)
+    try:
+        zha_device = await async_get_zha_device(hass, device_id)
+    except (KeyError, AttributeError):
+        return []
+    cluster_channels = [
+        ch.name
+        for pool in zha_device.channels.pools
+        for ch in pool.claimed_channels.values()
+    ]
     actions = [
         action
         for channel in DEVICE_ACTIONS
         for action in DEVICE_ACTIONS[channel]
-        if channel in zha_device.cluster_channels
+        if channel in cluster_channels
     ]
     for action in actions:
         action[CONF_DEVICE_ID] = device_id
@@ -77,15 +84,15 @@ async def _execute_service_based_action(
 ) -> None:
     action_type = config[CONF_TYPE]
     service_name = SERVICE_NAMES[action_type]
-    zha_device = await async_get_zha_device(hass, config[CONF_DEVICE_ID])
+    try:
+        zha_device = await async_get_zha_device(hass, config[CONF_DEVICE_ID])
+    except (KeyError, AttributeError):
+        return
 
-    service_action = {
-        service.CONF_SERVICE: "{}.{}".format(DOMAIN, service_name),
-        ATTR_DATA: {ATTR_IEEE: str(zha_device.ieee)},
-    }
+    service_data = {ATTR_IEEE: str(zha_device.ieee)}
 
-    await service.async_call_from_config(
-        hass, service_action, blocking=True, variables=variables, context=context
+    await hass.services.async_call(
+        DOMAIN, service_name, service_data, blocking=True, context=context
     )
 
 

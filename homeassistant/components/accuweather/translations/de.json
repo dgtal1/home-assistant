@@ -1,0 +1,19 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "latitude": "Breitengrad",
+                    "longitude": "L\u00e4ngengrad",
+                    "name": "Name"
+                },
+                "title": "AccuWeather"
+            }
+        }
+    },
+    "system_health": {
+        "info": {
+            "remaining_requests": "Verbleibende erlaubte Anfragen"
+        }
+    }
+}

@@ -1,18 +1,19 @@
 """The tests for NEW_NAME device triggers."""
 import pytest
 
-from homeassistant.components.switch import DOMAIN
-from homeassistant.const import STATE_ON, STATE_OFF
-from homeassistant.setup import async_setup_component
-import homeassistant.components.automation as automation
+from homeassistant.components import automation
+from homeassistant.components.NEW_DOMAIN import DOMAIN
+from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.helpers import device_registry
+from homeassistant.setup import async_setup_component
 
 from tests.common import (
     MockConfigEntry,
+    assert_lists_same,
+    async_get_device_automations,
     async_mock_service,
     mock_device_registry,
     mock_registry,
-    async_get_device_automations,
 )
 
 
@@ -30,12 +31,12 @@ def entity_reg(hass):
 
 @pytest.fixture
 def calls(hass):
-    """Track calls to a mock serivce."""
+    """Track calls to a mock service."""
     return async_mock_service(hass, "test", "automation")
 
 
 async def test_get_triggers(hass, device_reg, entity_reg):
-    """Test we get the expected triggers from a switch."""
+    """Test we get the expected triggers from a NEW_DOMAIN."""
     config_entry = MockConfigEntry(domain="test", data={})
     config_entry.add_to_hass(hass)
     device_entry = device_reg.async_get_or_create(
@@ -60,7 +61,7 @@ async def test_get_triggers(hass, device_reg, entity_reg):
         },
     ]
     triggers = await async_get_device_automations(hass, "trigger", device_entry.id)
-    assert triggers == expected_triggers
+    assert_lists_same(triggers, expected_triggers)
 
 
 async def test_if_fires_on_state_change(hass, calls):

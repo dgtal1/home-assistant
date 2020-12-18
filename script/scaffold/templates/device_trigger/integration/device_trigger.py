@@ -1,28 +1,34 @@
-"""Provides device automations for NEW_NAME."""
+"""Provides device triggers for NEW_NAME."""
 from typing import List
+
 import voluptuous as vol
 
-from homeassistant.const import (
-    CONF_DOMAIN,
-    CONF_TYPE,
-    CONF_PLATFORM,
-    CONF_DEVICE_ID,
-    CONF_ENTITY_ID,
-    STATE_ON,
-    STATE_OFF,
-)
-from homeassistant.core import HomeAssistant, CALLBACK_TYPE
-from homeassistant.helpers import entity_registry
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.components.automation import state, AutomationActionType
+from homeassistant.components.automation import AutomationActionType
 from homeassistant.components.device_automation import TRIGGER_BASE_SCHEMA
+from homeassistant.components.homeassistant.triggers import state
+from homeassistant.const import (
+    CONF_DEVICE_ID,
+    CONF_DOMAIN,
+    CONF_ENTITY_ID,
+    CONF_PLATFORM,
+    CONF_TYPE,
+    STATE_OFF,
+    STATE_ON,
+)
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+from homeassistant.helpers import config_validation as cv, entity_registry
+from homeassistant.helpers.typing import ConfigType
+
 from . import DOMAIN
 
 # TODO specify your supported trigger types.
 TRIGGER_TYPES = {"turned_on", "turned_off"}
 
 TRIGGER_SCHEMA = TRIGGER_BASE_SCHEMA.extend(
-    {vol.Required(CONF_TYPE): vol.In(TRIGGER_TYPES)}
+    {
+        vol.Required(CONF_ENTITY_ID): cv.entity_id,
+        vol.Required(CONF_TYPE): vol.In(TRIGGER_TYPES),
+    }
 )
 
 
@@ -74,11 +80,8 @@ async def async_attach_trigger(
     automation_info: dict,
 ) -> CALLBACK_TYPE:
     """Attach a trigger."""
-    config = TRIGGER_SCHEMA(config)
-
     # TODO Implement your own logic to attach triggers.
-    # Generally we suggest to re-use the existing state or event
-    # triggers from the automation integration.
+    # Use the existing state or event triggers from the automation integration.
 
     if config[CONF_TYPE] == "turned_on":
         from_state = STATE_OFF
@@ -87,14 +90,13 @@ async def async_attach_trigger(
         from_state = STATE_ON
         to_state = STATE_OFF
 
-    return state.async_attach_trigger(
-        hass,
-        {
-            CONF_ENTITY_ID: config[CONF_ENTITY_ID],
-            state.CONF_FROM: from_state,
-            state.CONF_TO: to_state,
-        },
-        action,
-        automation_info,
-        platform_type="device",
+    state_config = {
+        state.CONF_PLATFORM: "state",
+        CONF_ENTITY_ID: config[CONF_ENTITY_ID],
+        state.CONF_FROM: from_state,
+        state.CONF_TO: to_state,
+    }
+    state_config = state.TRIGGER_SCHEMA(state_config)
+    return await state.async_attach_trigger(
+        hass, state_config, action, automation_info, platform_type="device"
     )

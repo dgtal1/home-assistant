@@ -1,14 +1,14 @@
 {
   "domain": "automation",
   "name": "Automation",
-  "documentation": "https://www.home-assistant.io/components/automation",
-  "requirements": [],
-  "dependencies": [
+  "documentation": "https://www.home-assistant.io/integrations/automation",
+  "dependencies": ["blueprint"],
+  "after_dependencies": [
     "device_automation",
-    "group",
     "webhook"
   ],
   "codeowners": [
     "@home-assistant/core"
-  ]
+  ],
+  "quality_scale": "internal"
 }
