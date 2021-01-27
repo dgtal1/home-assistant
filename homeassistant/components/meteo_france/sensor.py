@@ -1,7 +1,7 @@
 """Support for Meteo-France raining forecast sensor."""
 import logging
 
-from meteofrance.helpers import (
+from meteofrance_api.helpers import (
     get_warning_text_status_from_indice_color,
     readeable_phenomenoms_dict,
 )
@@ -29,6 +29,8 @@ from .const import (
     ENTITY_ICON,
     ENTITY_NAME,
     ENTITY_UNIT,
+    MANUFACTURER,
+    MODEL,
     SENSOR_TYPES,
 )
 
@@ -93,6 +95,17 @@ class MeteoFranceSensor(CoordinatorEntity):
     def name(self):
         """Return the name."""
         return self._name
+
+    @property
+    def device_info(self):
+        """Return the device info."""
+        return {
+            "identifiers": {(DOMAIN, self.platform.config_entry.unique_id)},
+            "name": self.coordinator.name,
+            "manufacturer": MANUFACTURER,
+            "model": MODEL,
+            "entry_type": "service",
+        }
 
     @property
     def state(self):
