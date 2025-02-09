@@ -1,0 +1,5 @@
+version: "3.8"
+services:
+  devcontainer:
+    volumes:
+      - C:\Users\grzeg\Documents\GitHub\home-assistant\config\custom_components\extalife:/workspaces/home-assistant/config/custom_components/extalife
